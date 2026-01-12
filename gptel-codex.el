@@ -27,6 +27,7 @@
 (eval-when-compile (require 'cl-lib))
 (require 'gptel)
 (require 'gptel-openai)
+(require 'gptel-codex-prompts nil t)
 (require 'subr-x)
 
 (defvar gptel-model)
@@ -78,6 +79,9 @@ returns an instructions string."
 (defvar gptel-codex--prompt-cache (make-hash-table :test 'equal)
   "Cache of Codex prompt file contents.")
 
+(defvar gptel-codex--embedded-prompts nil
+  "Embedded Codex prompt strings, populated when available.")
+
 (defun gptel-codex--prompt-base-dir ()
   (file-name-directory (or load-file-name buffer-file-name)))
 
@@ -101,21 +105,37 @@ returns an instructions string."
 (defun gptel-codex--prompt-path (filename)
   (let ((candidates (cl-loop for dir in (gptel-codex--prompt-dirs)
                              collect (expand-file-name filename dir))))
-    (or (cl-find-if #'file-readable-p candidates)
-        (error "Missing Codex prompt file: %s (searched %s)"
-               filename
-               (if candidates
-                   (mapconcat #'identity candidates ", ")
-                 "no codex-prompts directories found")))))
+    (cl-find-if #'file-readable-p candidates)))
+
+(defun gptel-codex--embedded-prompt (filename)
+  (when (and (boundp 'gptel-codex--embedded-prompts)
+             gptel-codex--embedded-prompts)
+    (cdr (assoc filename gptel-codex--embedded-prompts))))
 
 (defun gptel-codex--read-prompt (filename)
   (or (gethash filename gptel-codex--prompt-cache)
-      (let ((path (gptel-codex--prompt-path filename)))
-        (let ((text (with-temp-buffer
-                      (insert-file-contents path)
-                      (buffer-string))))
-          (puthash filename text gptel-codex--prompt-cache)
-          text))))
+      (let* ((path (gptel-codex--prompt-path filename))
+             (embedded (gptel-codex--embedded-prompt filename)))
+        (cond
+         (path
+          (let ((text (with-temp-buffer
+                        (insert-file-contents path)
+                        (buffer-string))))
+            (puthash filename text gptel-codex--prompt-cache)
+            text))
+         (embedded
+          (puthash filename embedded gptel-codex--prompt-cache)
+          embedded)
+         (t
+          (let ((dirs (gptel-codex--prompt-dirs)))
+            (error "Missing Codex prompt file: %s (searched %s; no embedded prompt)"
+                   filename
+                   (if dirs
+                       (mapconcat (lambda (dir)
+                                    (expand-file-name filename dir))
+                                  dirs
+                                  ", ")
+                     "no codex-prompts directories found"))))))))
 
 (defun gptel-codex--instructions-for-model (model-name)
   (cond
