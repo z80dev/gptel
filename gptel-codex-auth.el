@@ -139,6 +139,9 @@ Used with the Codex CLI's last_refresh timestamp."
 (defun gptel-codex--refresh-token (auth)
   (gptel-codex--alist-get* '("refresh_token" "refresh") auth))
 
+(defun gptel-codex--account-id (auth)
+  (gptel-codex--alist-get* '("account_id" "accountId") auth))
+
 (defun gptel-codex--auth-alist-p (obj)
   (and (listp obj)
        (or (null obj)
@@ -265,8 +268,12 @@ Used with the Codex CLI's last_refresh timestamp."
 (defun gptel-codex-auth-header ()
   "Header function for gptel :header. Injects Bearer token."
   (let* ((auth (gptel-codex--ensure-valid-auth))
-         (access (gptel-codex--access-token auth)))
-    `(("Authorization" . ,(concat "Bearer " access)))))
+         (access (gptel-codex--access-token auth))
+         (account-id (gptel-codex--account-id auth))
+         (headers `(("Authorization" . ,(concat "Bearer " access)))))
+    (when account-id
+      (push (cons "ChatGPT-Account-Id" account-id) headers))
+    headers))
 
 (provide 'gptel-codex-auth)
 ;;; gptel-codex-auth.el ends here

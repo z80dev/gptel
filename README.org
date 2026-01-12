@@ -253,14 +253,11 @@ Use the cached tokens with gptel:
 
 #+begin_src emacs-lisp
 (require 'gptel)
+(require 'gptel-codex)
 (require 'gptel-codex-auth)
 
 (setq gptel-backend
-      (gptel-make-openai "Codex (ChatGPT OAuth)"
-        :protocol "https"
-        :host "chatgpt.com"
-        :endpoint "/backend-api/codex/responses"
-        :stream t
+      (gptel-make-codex "Codex (ChatGPT OAuth)"
         :header #'gptel-codex-auth-header
         :models '(gpt-5.2-codex gpt-5.1-codex-mini gpt-5.1-codex-max gpt-5.2)))
 
@@ -268,6 +265,11 @@ Use the cached tokens with gptel:
 #+end_src
 
 Treat =~/.codex/auth.json= like a password.
+
+Codex responses require streaming and curl support (set =gptel-stream= and
+=gptel-use-curl= to non-nil).  The Codex backend sends model-specific prompts
+from the bundled files in =codex-prompts/=; if you override these, set
+=gptel-codex-instructions= to a valid Codex prompt string.
 
 *** Other LLM backends
 
