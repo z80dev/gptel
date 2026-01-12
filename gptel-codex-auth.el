@@ -79,12 +79,24 @@ Used with the Codex CLI's last_refresh timestamp."
       (goto-char (point-min))
       (gptel-codex--json-read-buffer))))
 
+(defun gptel-codex--key-match-p (key candidate)
+  (cond
+   ((stringp candidate) (string= candidate key))
+   ((symbolp candidate) (string= (symbol-name candidate) key))
+   (t nil)))
+
+(defun gptel-codex--alist-cell (key alist)
+  (cl-loop for cell in alist
+           when (and (consp cell)
+                     (gptel-codex--key-match-p key (car cell)))
+           return cell))
+
 (defun gptel-codex--alist-get* (keys alist)
   "Return first present key from KEYS (strings) in ALIST."
   (catch 'found
     (dolist (key keys)
-      (let ((val (alist-get key alist nil nil #'string=)))
-        (when val (throw 'found val))))
+      (let ((cell (gptel-codex--alist-cell key alist)))
+        (when cell (throw 'found (cdr cell)))))
     nil))
 
 (defun gptel-codex--now ()
@@ -130,7 +142,8 @@ Used with the Codex CLI's last_refresh timestamp."
   (and (listp obj)
        (or (null obj)
            (and (consp (car obj))
-                (stringp (caar obj))))))
+                (or (stringp (caar obj))
+                    (symbolp (caar obj)))))))
 
 (defun gptel-codex--find-auth (obj)
   "Return the first alist that looks like an auth token container."
@@ -154,7 +167,7 @@ Used with the Codex CLI's last_refresh timestamp."
 
 (defun gptel-codex--alist-set (key value alist)
   "Set KEY to VALUE in ALIST, mutating ALIST in place when possible."
-  (let ((cell (assoc-string key alist)))
+  (let ((cell (gptel-codex--alist-cell key alist)))
     (if cell
         (setcdr cell value)
       (let ((tail (last alist)))
