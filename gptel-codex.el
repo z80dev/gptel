@@ -232,7 +232,7 @@ returns an instructions string."
 
 (defun gptel-codex--ensure-streaming ()
   (unless gptel-stream
-    (error "Codex backend requires streaming; set gptel-stream to t"))
+    (error "Codex backend requires streaming; set gptel-stream to t and pass :stream t to gptel-request"))
   (unless gptel-use-curl
     (error "Codex backend requires curl streaming; set gptel-use-curl to t")))
 
