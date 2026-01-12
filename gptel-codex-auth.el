@@ -86,10 +86,11 @@ Used with the Codex CLI's last_refresh timestamp."
    (t nil)))
 
 (defun gptel-codex--alist-cell (key alist)
-  (cl-loop for cell in alist
-           when (and (consp cell)
-                     (gptel-codex--key-match-p key (car cell)))
-           return cell))
+  (when (listp alist)
+    (cl-loop for cell in alist
+             when (and (consp cell)
+                       (gptel-codex--key-match-p key (car cell)))
+             return cell)))
 
 (defun gptel-codex--alist-get* (keys alist)
   "Return first present key from KEYS (strings) in ALIST."
@@ -178,10 +179,15 @@ Used with the Codex CLI's last_refresh timestamp."
 
 (defun gptel-codex--http-post-form-json (url params)
   "POST x-www-form-urlencoded PARAMS to URL and parse JSON response."
-  (let* ((url-request-method "POST")
+  (let* ((normalized
+          (cl-loop for pair in params
+                   collect (if (consp pair)
+                               (list (car pair) (cdr pair))
+                             pair)))
+         (url-request-method "POST")
          (url-request-extra-headers
           '(("Content-Type" . "application/x-www-form-urlencoded")))
-         (url-request-data (url-build-query-string params))
+         (url-request-data (url-build-query-string normalized))
          (buffer (url-retrieve-synchronously url t t 30)))
     (unless buffer
       (error "Failed to reach OAuth endpoint: %s" url))
