@@ -34,6 +34,7 @@
 (defvar gptel-use-curl)
 (defvar gptel-use-tools)
 (defvar gptel-tools)
+(defvar gptel-backend)
 (defvar gptel--request-params)
 
 (declare-function gptel--merge-plists "gptel")
@@ -41,6 +42,7 @@
 (declare-function gptel--model-request-params "gptel")
 (declare-function gptel--process-models "gptel-openai")
 (declare-function gptel--parse-tools "gptel-request")
+(declare-function gptel-codex-auth-header "gptel-codex-auth")
 
 (defgroup gptel-codex nil
   "Codex (ChatGPT OAuth) backend."
