@@ -72,26 +72,45 @@ returns an instructions string."
   :type 'string
   :group 'gptel-codex)
 
-(defconst gptel-codex--prompt-dir
-  (file-name-directory (or load-file-name buffer-file-name))
-  "Directory containing Codex prompt assets.")
-
 (defconst gptel-codex--prompt-subdir "codex-prompts"
   "Subdirectory within `gptel-codex--prompt-dir' with prompt files.")
 
 (defvar gptel-codex--prompt-cache (make-hash-table :test 'equal)
   "Cache of Codex prompt file contents.")
 
+(defun gptel-codex--prompt-base-dir ()
+  (file-name-directory (or load-file-name buffer-file-name)))
+
+(defun gptel-codex--prompt-repo-dir (dir)
+  (when (and dir
+             (string-match "/straight/build-[^/]+/gptel/?\\'" dir))
+    (replace-regexp-in-string
+     "/straight/build-[^/]+/gptel/?\\'"
+     "/straight/repos/gptel/"
+     dir)))
+
+(defun gptel-codex--prompt-dirs ()
+  (let* ((base (gptel-codex--prompt-base-dir))
+         (repo (gptel-codex--prompt-repo-dir base))
+         (roots (delete-dups (delq nil (list base repo)))))
+    (cl-loop for root in roots
+             for dir = (expand-file-name gptel-codex--prompt-subdir root)
+             when (file-directory-p dir)
+             collect dir)))
+
 (defun gptel-codex--prompt-path (filename)
-  (expand-file-name filename
-                    (expand-file-name gptel-codex--prompt-subdir
-                                      gptel-codex--prompt-dir)))
+  (let ((candidates (cl-loop for dir in (gptel-codex--prompt-dirs)
+                             collect (expand-file-name filename dir))))
+    (or (cl-find-if #'file-readable-p candidates)
+        (error "Missing Codex prompt file: %s (searched %s)"
+               filename
+               (if candidates
+                   (mapconcat #'identity candidates ", ")
+                 "no codex-prompts directories found")))))
 
 (defun gptel-codex--read-prompt (filename)
   (or (gethash filename gptel-codex--prompt-cache)
       (let ((path (gptel-codex--prompt-path filename)))
-        (unless (file-readable-p path)
-          (error "Missing Codex prompt file: %s" path))
         (let ((text (with-temp-buffer
                       (insert-file-contents path)
                       (buffer-string))))
