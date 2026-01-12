@@ -230,6 +230,45 @@ Optional: Set =gptel-api-key= to the key. Alternatively, you may choose a more s
 - Setting it to a custom function that returns the key.
 - Leaving it set to the default =gptel-api-key-from-auth-source= function which reads keys from =~/.authinfo=. (See [[#optional-securing-api-keys-with-authinfo][authinfo details]])
 
+*** Codex (ChatGPT OAuth)
+If you have a ChatGPT subscription via Codex, you can reuse the Codex CLI OAuth
+tokens instead of an API key.
+
+Configure the Codex CLI to store credentials in a file:
+
+#+begin_src toml
+# ~/.codex/config.toml
+cli_auth_credentials_store = "file"
+#+end_src
+
+Then run:
+
+#+begin_src sh
+codex login
+#+end_src
+
+(For headless/remote setups, use =codex login --device-auth=.)
+
+Use the cached tokens with gptel:
+
+#+begin_src emacs-lisp
+(require 'gptel)
+(require 'gptel-codex-auth)
+
+(setq gptel-backend
+      (gptel-make-openai "Codex (ChatGPT OAuth)"
+        :protocol "https"
+        :host "chatgpt.com"
+        :endpoint "/backend-api/codex/responses"
+        :stream t
+        :header #'gptel-codex-auth-header
+        :models '(gpt-5.2-codex gpt-5.1-codex-mini gpt-5.1-codex-max gpt-5.2)))
+
+(setq gptel-model 'gpt-5.2-codex)
+#+end_src
+
+Treat =~/.codex/auth.json= like a password.
+
 *** Other LLM backends
 
 ChatGPT is configured out of the box.  If you want to use other LLM backends (like Ollama, Claude/Anthropic or Gemini) you need to register and configure them first.
