@@ -236,6 +236,17 @@ returns an instructions string."
   (unless gptel-use-curl
     (error "Codex backend requires curl streaming; set gptel-use-curl to t")))
 
+(defun gptel-codex--force-stream (orig prompt &rest keys)
+  (if (cl-typep gptel-backend 'gptel-codex)
+      (progn
+        (setq gptel-stream t
+              gptel-use-curl t)
+        (apply orig prompt (plist-put keys :stream t)))
+    (apply orig prompt keys)))
+
+(with-eval-after-load 'gptel-request
+  (advice-add 'gptel-request :around #'gptel-codex--force-stream))
+
 ;;; Codex (Responses API)
 (cl-defstruct (gptel-codex (:constructor gptel--make-codex)
                            (:copier nil)
